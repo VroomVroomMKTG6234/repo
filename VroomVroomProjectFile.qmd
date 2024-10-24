@@ -32,7 +32,7 @@ import polars as pl
 import plotly.express as px
 
 # Load data
-df = pl.read_csv("https://raw.githubusercontent.com/workspaces/repo/car_prices.csv")
+df = pl.read_csv("https://raw.githubusercontent.com/VroomVroomMKTG6234/repo/refs/heads/main/car_prices.csv")
 
 # View the first few rows of the data
 df.head()
@@ -40,11 +40,11 @@ df.head()
 ```
 
 
-- First, we examine the distribution of avg_distance by plotting a histogram.
+- First, we examine the distribution of 'sellingprice' by plotting a histogram.
 
 ```{python}
 
-px.histogram(email, x = 'avg_distance')
+px.histogram(df, x = 'sellingprice')
 
 
 ```
