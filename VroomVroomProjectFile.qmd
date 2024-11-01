@@ -52,6 +52,63 @@ px.histogram(df, x = 'sellingprice')
 
 From the histogram, it looks like the range of the avg_distance traveled is mostly between 200 and 800 mpg.
 
+```{python}
+num_columns = df.width
+print("Number of variables:", num_columns)
+```
+#In this dataset, we have 16 columns
+
+```{python}
+for col in df.columns:
+    unique_count = df[col].n_unique()
+    print(f"{col}: {unique_count} unique values")
+```
+#Determining how many different categories are in each column
+
+```{python}
+aggregations = []
+for col in df.columns:
+    if df.schema[col] in [pl.Float64, pl.Float32, pl.Int64, pl.Int32]:
+        aggregations.extend([
+            pl.col(col).mean().alias(f"{col}_mean"),
+            pl.col(col).median().alias(f"{col}_median"),
+            pl.col(col).var().alias(f"{col}_variance"),
+            pl.col(col).std().alias(f"{col}_std")
+        ])
+summary_stats = df.select(aggregations)
+print(summary_stats)
+#summary statistics for only numeric columns
+```
+
+```{python}
+px.histogram(
+  df,
+  x = "odometer"
+)
+px.histogram(
+  df,
+  x ="condition"
+)
+px.histogram(
+  df,
+  x ="sellingprice"
+)
+px.histogram(
+  df,
+  x = "mmr"
+)    
+#plotting of each numerical variable using a histogram, seperate out code to run, just have them all together for organization
+```
+
+```{python}
+px.bar(
+  df,
+  x = "body",
+  y = "sellingprice"
+)
+#plotting of each categorical variable using a bar chart, still need to add more!
+```
+
 - Second, we examine some summary statistics of the avg_distance variable:
 
 ```{python}
@@ -65,6 +122,8 @@ email.select(
 )
 
 ```
+
+
 # Model-Based Analysis
 
 We use XXX model to investigate the data set.
