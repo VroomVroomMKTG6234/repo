@@ -130,6 +130,117 @@ We use XXX model to investigate the data set.
 
 
 ## Customer Segmentation
+```{python}
+# load required packages
+import polars as pl
+import plotly.express as px
+from sklearn.pipeline import Pipeline
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+# Load data
+df = pl.read_csv("https://raw.githubusercontent.com/VroomVroomMKTG6234/repo/refs/heads/main/car_prices.csv")
+
+# View the first few rows of the data
+
+df.head()
+```
+
+
+
+```{python}
+# Select relevant features for clustering
+
+df_bases = df.select([
+    'sellingprice',
+    'year',
+    'condition',
+    'odometer',])
+
+df_bases = df_bases.drop_nulls()
+
+
+```
+
+
+```{python}
+
+def create_pipeline(num_clusters, random_seed = 42):
+    """
+    Creates a machine learning pipeline with a scaler and KMeans.
+    """
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('kmeans', KMeans(n_clusters=num_clusters, random_state=random_seed))
+    ])
+    return pipeline
+
+
+```
+
+
+```{python}
+def calculate_totwithinss(data, k):
+    kmeans_pipeline = create_pipeline(k, random_seed=10)
+    kmeans_pipeline.fit(data)
+    return kmeans_pipeline['kmeans'].inertia_ # inertia is average
+
+# Calculate tot.withinss for different values of k (Average difference)
+k_values = range(1, 10) # 10 is Exclusive, so it stops at 9. Starts at 1
+totwithinss_values = [calculate_totwithinss(df_bases, k) for k in k_values]
+
+# Create a DataFrame for results
+kmeans_results = pl.DataFrame(
+    {'num_clusters': k_values,
+     'tot_withinss': totwithinss_values})
+
+# Plot the elbow method using Plotly Express
+elbow_plot = px.line(
+    data_frame = kmeans_results,
+    x = 'num_clusters',
+    y = 'tot_withinss', 
+    markers = True,
+    labels = {
+        'num_clusters': 'Number of Clusters', 'tot_withinss': 'Total Within SS'
+        },
+    title = 'Elbow Method for Optimal k')
+
+elbow_plot.show()
+```
+
+
+```{python}
+# Choose the number of clusters based on the elbow method
+optimal_k = 2
+
+# Run K-means clustering
+
+df_kmeans_pipeline = create_pipeline(optimal_k)
+df_kmeans_pipeline.fit(df_bases)
+
+
+# Add cluster assignments to the original data
+df_bases_with_clusters = df_bases.with_columns(
+    pl.Series(
+        "segment_number",
+        df_kmeans_pipeline['kmeans'].labels_ + 1 # + 1 adds to make the clusters 1,2,3 instead of 0,1,2
+        ).cast(pl.Utf8).cast(pl.Categorical)  # Make cluster labels 1-indexed, the casting is optional, used to change to string and then to categorical data
+)
+
+df_bases_with_clusters.head()
+
+# for col in df.columns:
+#    means[col] = df[col].mean()
+
+df_bases_grouped = df_bases_with_clusters.group_by('segment_number').agg(pl.col('sellingprice').mean(),pl.col('year').mean(),pl.col('odometer').mean(),pl.col('condition').mean())
+
+print(df_bases_grouped)
+```
+
+Description of Each Segment
+
+As displayed in the "df_bases_grouped" table, we have created two distinct segments that separate the records in the cars_prices.csv file. Using the 'sellingprice', 'year', 'odometer', and 'condition' attribtutes, we created an elbow plot, and determined 2 clusters was the optimal number of segments to cluster the data. Using the k-means cluster analysis, we created a k-means model and grouped the data by the 'segment_number'. We calculated the mean of each column intially included in the elbow plot, and found distinct difference in each segement. In the first segment '1', we exhibited higher priced vehicles were consolidated, with a younger year of manufacture, lower odometer, and higher condition value. Alternatively, the segment '2' exhibited lower priced vehicles, a older year of manufacture, a higher odometer, and a lower condition value. This leads us to conclude that segment '1' contains nicer vehicles that are less used, and segment '2' contains lower quality vehicles that are more used. 
 
 ## Targeting
 
